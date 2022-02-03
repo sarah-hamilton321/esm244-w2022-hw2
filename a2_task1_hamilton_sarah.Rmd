@@ -1,0 +1,235 @@
+---
+title: "ESM 244 HW 2 Task 1: Florida Palmettos"
+author: "Sarah Hamilton"
+date: "2/2/2022"
+output: 
+  html_document: 
+    toc: yes
+    theme: cerulean
+    number_sections: yes
+    code_folding: hide
+---
+# Introduction
+
+INSERT INTRO AND OVERVIEW OF DATA AND CODE AND QUESTIONS TO BE ANSWERED
+
+Data Citation: Abrahamson, W.G. 2019. Survival, growth and biomass estimates of two dominant palmetto species of south-central Florida from 1981 - 2017, ongoing at 5-year intervals ver 1. Environmental Data Initiative. https://doi.org/10.6073/pasta/f2f96ec76fbbd4b9db431c79a770c4d5
+
+```{r setup, include=TRUE, warning = FALSE, message = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+#install necessary packages
+library(tidyverse)
+library(GGally) #?
+library(broom) #?
+library(jtools) #?
+library(caret) #?
+library(AICcmodavg) 
+library(here)
+library(patchwork)
+```
+
+## Data Exploration & Visualization 
+
+I plotted the data below to determine which variables will best predict the palmetto species. 
+
+```{r}
+#read in the data
+palmetto <- read_csv(here("data","palmetto.csv"))
+
+#species = 1 --> serenoa repens
+#species = 2 --> sabal etonia
+
+#explore differences in height, canopy length, canopy width, and green leaves for the two species using ggpairs
+palmetto_sub <- palmetto %>%
+  select(species, height:green_lvs) %>%
+  mutate(species = case_when( #rename the species to their scientific names 
+    species == 1 ~ "Serenoa repens",
+    species == 2 ~ "Sabal etonia"
+  ))
+
+pairs_exploratory_plot <- palmetto_sub %>%
+  ggpairs(aes(color = species))
+
+#pairs_exploratory_plot #use to output the exploratory ggpairs plot
+
+#Height is very similar between the species, so plot green leaves vs. length and green leaves vs. width 
+leaves_length_plot <- ggplot(data = palmetto_sub, aes(x = length, y = green_lvs)) +
+  geom_point(aes(color = species)) +
+  theme_minimal() +
+  labs(x = "Length (cm)", y = "No. of Green Leaves") +
+  scale_color_manual(values = c("#88315c", "#5799a8"))
+
+#leaves_length_plot
+
+leaves_width_plot <- ggplot(data = palmetto_sub, aes(x = width, y = green_lvs)) +
+  geom_point(aes(color = species)) +
+  theme_minimal() +
+  labs(x = "Width (cm)", y = "No. of Green Leaves") +
+  scale_color_manual(values = c("#88315c", "#5799a8")) +
+  theme(legend.position = "none")
+
+#leaves_width_plot
+
+length_width_plot <- ggplot(data = palmetto_sub, aes(x = width, y = length)) +
+  geom_point(aes(color = species)) +
+  theme_minimal() +
+  labs(x = "Width (cm)", y = "Length (cm)") +
+  scale_color_manual(values = c("#88315c", "#5799a8")) +
+  theme(legend.position = "none")
+
+#length_width_plot
+
+(length_width_plot | leaves_width_plot | leaves_length_plot) +
+  plot_annotation(caption = str_wrap("Figure 1. The top graph plots the length of the palmetto versus the width, the bottom left graph plots the number of green leaves on the palmetto versus the width, and the bottom right graph plots the number of green leaves on the palmetto versus the length. The color indicates the palmetto species."),
+                  theme = theme(plot.caption = element_text(hjust = 0.5)))
+
+```
+
+The exploratory plots show us that there is the most variation between species in the number of green leaves that each has. They show that the species do not vary much from each other for length and width. Therefore, the number of green leaves will likely be the most helpful variable for classifying species. 
+
+## Binary Logistic Regression
+
+### Model 1 
+
+```{r}
+#make species a factor 
+palmetto_sub$species <- as.factor(palmetto_sub$species)
+#Levels: Sabal etonia = 0, Serenoa repens = 1
+
+#BLR on Model 1: Plant type as function of plant height, canopy length, canopy width and green leaves.
+f1 <- species ~ height + length + width + green_lvs
+
+palmetto_blr1 <- glm(formula = f1,
+                     data = palmetto_sub,
+                     family = 'binomial')
+
+#summary(palmetto_blr1)
+blr1_tidy <- broom::tidy(palmetto_blr1)
+blr1_tidy
+
+```
+
+```{r}
+#make a table to predict the species of each point for model 1
+blr1_fitted <- palmetto_blr1 %>%
+  broom::augment(type.predict = 'response')
+
+#plot the probability 
+ggplot(data = blr1_fitted, aes(x = green_lvs, y = .fitted)) +
+  geom_point(aes(color = species)) +
+  geom_smooth(aes(color = species), se = FALSE) +
+  labs(x = "No. of Green Leaves", y = "Probability of outcome 'Serenoa repens'")
+```
+
+```{r}
+#visualize model outcomes for model 1
+eff_1 <- effect_plot(palmetto_blr1,
+            pred = green_lvs,
+            interval = TRUE,
+            y.label = "Probability of 'Serenoa repens'")
+
+eff_2 <- effect_plot(palmetto_blr1,
+            pred = length,
+            interval = TRUE,
+            y.label = "Probability of 'Serenoa repens'")
+
+eff_3 <- effect_plot(palmetto_blr1,
+            pred = width,
+            interval = TRUE,
+            y.label = "Probability of 'Serenoa repens'")
+
+eff_4 <- effect_plot(palmetto_blr1,
+            pred = height,
+            interval = TRUE,
+            y.label = "Probability of 'Serenoa repens'")
+
+(eff_1 | eff_2 | eff_3 | eff_4)
+```
+
+### Model 2
+
+```{r}
+#BLR on Model 2: Plant type as function of  plant height, canopy width and green leaves
+
+f2 <- species ~ height + width + green_lvs
+
+palmetto_blr2 <- glm(formula = f2,
+                     data = palmetto_sub,
+                     family = 'binomial')
+
+#summary(palmetto_blr2)
+blr2_tidy <- broom::tidy(palmetto_blr2)
+blr2_tidy
+
+```
+
+```{r}
+#make a table to predict the species of each point for model 2
+blr2_fitted <- palmetto_blr2 %>%
+  broom::augment(type.predict = 'response')
+
+#plot the probability 
+ggplot(data = blr2_fitted, aes(x = green_lvs, y = .fitted)) +
+  geom_point(aes(color = species)) +
+  geom_smooth(aes(color = species), se = FALSE) +
+  labs(x = "No. of Green Leaves", y = "Probability of outcome 'Serenoa repens'")
+```
+
+```{r}
+#visualize model outcomes for model 2
+eff_5 <- effect_plot(palmetto_blr2,
+            pred = green_lvs,
+            interval = TRUE,
+            y.label = "Probability of 'Serenoa repens'")
+
+eff_6 <- effect_plot(palmetto_blr2,
+            pred = width,
+            interval = TRUE,
+            y.label = "Probability of 'Serenoa repens'")
+
+eff_7 <- effect_plot(palmetto_blr2,
+            pred = height,
+            interval = TRUE,
+            y.label = "Probability of 'Serenoa repens'")
+
+(eff_5 | eff_6 | eff_7)
+```
+
+## Model Selection
+
+### Comparing AICs
+
+```{r}
+AICcmodavg::aictab(list(palmetto_blr1, palmetto_blr2))
+```
+
+Model 1 has a lower AIC than model 2, indicating that it may be the better model. 
+
+### 10-Fold Cross Validation
+
+```{r}
+set.seed(21)
+
+tr_ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 10)
+
+#train the model 
+model1 <- train(f1, data = palmetto_sub,
+                method = 'glm', family = 'binomial',
+                trControl = tr_ctrl)
+
+#model1
+
+model2 <- train(f2, data = palmetto_sub,
+                method = 'glm', family = 'binomial',
+                trControl = tr_ctrl)
+
+#model2
+```
+
+
+
+
+
+
+
