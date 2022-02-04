@@ -27,9 +27,10 @@ library(caret) #?
 library(AICcmodavg) 
 library(here)
 library(patchwork)
+library(kableExtra)
 ```
 
-## Data Exploration & Visualization 
+# Data Exploration & Visualization 
 
 I plotted the data below to determine which variables will best predict the palmetto species. 
 
@@ -46,7 +47,8 @@ palmetto_sub <- palmetto %>%
   mutate(species = case_when( #rename the species to their scientific names 
     species == 1 ~ "Serenoa repens",
     species == 2 ~ "Sabal etonia"
-  ))
+  )) %>%
+  drop_na()
 
 pairs_exploratory_plot <- palmetto_sub %>%
   ggpairs(aes(color = species))
@@ -88,9 +90,9 @@ length_width_plot <- ggplot(data = palmetto_sub, aes(x = width, y = length)) +
 
 The exploratory plots show us that there is the most variation between species in the number of green leaves that each has. They show that the species do not vary much from each other for length and width. Therefore, the number of green leaves will likely be the most helpful variable for classifying species. 
 
-## Binary Logistic Regression
+# Binary Logistic Regression
 
-### Model 1 
+## Model 1 
 
 ```{r}
 #make species a factor 
@@ -106,7 +108,7 @@ palmetto_blr1 <- glm(formula = f1,
 
 #summary(palmetto_blr1)
 blr1_tidy <- broom::tidy(palmetto_blr1)
-blr1_tidy
+#blr1_tidy
 
 ```
 
@@ -147,7 +149,7 @@ eff_4 <- effect_plot(palmetto_blr1,
 (eff_1 | eff_2 | eff_3 | eff_4)
 ```
 
-### Model 2
+## Model 2
 
 ```{r}
 #BLR on Model 2: Plant type as function of  plant height, canopy width and green leaves
@@ -160,7 +162,7 @@ palmetto_blr2 <- glm(formula = f2,
 
 #summary(palmetto_blr2)
 blr2_tidy <- broom::tidy(palmetto_blr2)
-blr2_tidy
+#blr2_tidy
 
 ```
 
@@ -196,17 +198,17 @@ eff_7 <- effect_plot(palmetto_blr2,
 (eff_5 | eff_6 | eff_7)
 ```
 
-## Model Selection
+# Model Selection
 
-### Comparing AICs
+## Comparing AICs
 
 ```{r}
-AICcmodavg::aictab(list(palmetto_blr1, palmetto_blr2))
+aic_models <- AICcmodavg::aictab(list(palmetto_blr1, palmetto_blr2))
 ```
 
-Model 1 has a lower AIC than model 2, indicating that it may be the better model. 
+Model 1 has a lower AICc (`r round(aic_models$AICc[1],0)`) than model 2 (`r round(aic_models$AICc[2],0)`), indicating that it may be the better model. The difference in the AICc values is significant (Delta AICc = `r round(aic_models$Delta_AICc[2],0)`).
 
-### 10-Fold Cross Validation
+## 10-Fold Cross Validation
 
 ```{r}
 set.seed(21)
@@ -225,10 +227,65 @@ model2 <- train(f2, data = palmetto_sub,
                 trControl = tr_ctrl)
 
 #model2
+
 ```
 
+The results of the 10-fold cross validation returned an accuracy of `r 100*round(model1$results$Accuracy,2)`% for Model 1 and an accuracy of `r 100*round(model2$results$Accuracy,2)`% for Model 2. These values indicate slightly higher accuracy for Model 1, indicating that Model 1 is a slightly better model, which is also confirmed  by Model 1 having a lower AIC value. 
 
+```{r}
+#make a table of results of BLR models
 
+blr1_tidy$p.value <- ifelse(blr1_tidy$p.value < .001, 
+                            paste("< .001"))
+
+blr1_tidy %>%
+  kable(col.names = c("Term", "Estimate", "Std. Error", "Statistic", "P Value"),
+        digits = 2,
+        caption = "Table 1. BLR Model 1 Results") %>%
+  kable_styling(full_width = FALSE)
+
+# blr2_tidy %>%
+#   kable(col.names = c("Term", "Estimate", "Std. Error", "Statistic", "P Value"),
+#         digits = 2,
+#         caption = "Table 2. BLR Model 2 Results") %>%
+#   kable_styling(full_width = FALSE)
+```
+
+Final Model 1 Equation:
+```{r}
+#output the final equation 
+equatiomatic::extract_eq(model = palmetto_blr1, use_coefs = TRUE)
+```
+
+# Model Success
+
+```{r}
+#evaluate how successful the model is at classifying the two palmetto types
+
+blr1_predict <- blr1_fitted %>%
+  mutate(predicted = case_when(
+    .fitted >= 0.5 ~ "Serenoa repens",
+    .fitted < 0.5 ~ "Sabal etonia"
+  )) %>%
+  mutate(correct = case_when(
+    species == predicted ~ "Y",
+    species != predicted ~ "N"
+  ))
+
+accuracy_counts <- blr1_predict %>%
+  janitor::tabyl(species, correct)
+
+accuracy_counts <- accuracy_counts %>%
+  mutate("% Correct" = round(100*accuracy_counts$Y/(accuracy_counts$Y+accuracy_counts$N),2)) %>%
+  kable(col.names = c("Species", "Incorrectly Classified", "Correctly Classified", "% Correctly Classified"),
+        digits = 1,
+        caption = "Table 2. Classification accuracy results from BLR Model 1") %>%
+  kable_styling(full_width = FALSE)
+
+accuracy_counts
+```
+
+Model 1 predicted the Sabal etonia species with slightly more accuracy than the Serena repens species, but it predicted both with greater than 90% accuracy. 
 
 
 
