@@ -35,18 +35,18 @@ lizards <- read_csv(here("data","lizard.csv")) %>%
 
 # Define the function
 $$
-W = a*(SVL^b)
+W = a*(SVL)^b
 $$
 
 Next, I linearized the function to get a formula to run a linear regression on to get coefficient guesses. 
 
 $$
-ln(W) = ln(a) + b*ln(SVL)
+ln(W) = b*ln(a) + b*ln(SVL) 
 $$
 
 ```{r}
-lizard <- function(a, SV_length, b){
-  weight_out = a*(SV_length^b)
+lizard_function <- function(a, SVL, b){
+  weight_out = a*(SVL^b)
   return(out)
 }
 ```
@@ -64,9 +64,19 @@ lizards <- lizards %>%
 #use linear regression on the log() values to find guesses for coefficients
 model_linear <- lm(log_weight ~ log_length, data = lizards) 
 
-a_estimate <- exp(model_linear$coefficients[1])
+a_estimate <- exp(model_linear$coefficients[1]/model_linear$coefficients[2]) #divide by b or not? 
 b_estimate <- exp(model_linear$coefficients[2])
 ```
+
+```{r}
+#run NLS on one model 
+
+nls_lizards = nls(weight ~ lizard_function(a, SV_length, b),
+                  data = lizards,
+                  start = list(a = a_estimate, b = b_estimate),
+                  trace = TRUE)
+```
+
 
 
 
