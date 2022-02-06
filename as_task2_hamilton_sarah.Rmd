@@ -1,0 +1,72 @@
+---
+title: 'ESM 244 HW 2 Task 2: Lizards'
+author: "Sarah Hamilton"
+date: "2/5/2022"
+output: 
+  html_document: 
+    toc: yes
+    theme: cerulean
+    number_sections: yes
+    code_folding: hide
+---
+# Introduction
+
+INSERT INTROOOOO**** "provides a description of the dataset, the purpose of the analysis"
+
+Source: Lightfoot, D. and W.G. Whitford. 2020. Lizard pitfall trap data from 11 NPP study locations at the Jornada Basin LTER site, 1989-2006 ver 37. Environmental Data Initiative. https://doi.org/10.6073/pasta/4a6e258fb49c31e222ecbbcfd128967f
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(Metrics)
+library(cowplot)
+library(purrr)
+library(here)
+```
+
+```{r}
+#read in the data 
+
+lizards <- read_csv(here("data","lizard.csv")) %>%
+  select(spp:weight) %>%
+  drop_na()
+```
+
+# Define the function
+$$
+W = a*(SVL^b)
+$$
+
+Next, I linearized the function to get a formula to run a linear regression on to get coefficient guesses. 
+
+$$
+ln(W) = ln(a) + b*ln(SVL)
+$$
+
+```{r}
+lizard <- function(a, SV_length, b){
+  weight_out = a*(SV_length^b)
+  return(out)
+}
+```
+
+```{r}
+#add columns in the data for log(length) and log(weight)
+lizards <- lizards %>%
+  mutate(log_length = log(SV_length),
+         log_weight = log(weight)
+  )
+
+```
+
+```{r}
+#use linear regression on the log() values to find guesses for coefficients
+model_linear <- lm(log_weight ~ log_length, data = lizards) 
+
+a_estimate <- exp(model_linear$coefficients[1])
+b_estimate <- exp(model_linear$coefficients[2])
+```
+
+
+
