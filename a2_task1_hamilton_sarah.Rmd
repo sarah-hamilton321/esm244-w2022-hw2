@@ -11,7 +11,7 @@ output:
 ---
 # Introduction
 
-INSERT INTRO AND OVERVIEW OF DATA AND CODE AND QUESTIONS TO BE ANSWERED
+In the following code, I perform binary logistic regression (BLR) on data related to Florida palmettos in order to determine which of two models better classifies the species of palmettos. I first performed BLR on two different models, and then visualized the results and identified the better performing model. The data used comes from the Environmental Data Initiative, and contains identifying information about the palmettos such as the year, species, site, and other parameters.
 
 Data Citation: Abrahamson, W.G. 2019. Survival, growth and biomass estimates of two dominant palmetto species of south-central Florida from 1981 - 2017, ongoing at 5-year intervals ver 1. Environmental Data Initiative. https://doi.org/10.6073/pasta/f2f96ec76fbbd4b9db431c79a770c4d5
 
@@ -20,10 +20,10 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 #install necessary packages
 library(tidyverse)
-library(GGally) #?
-library(broom) #?
-library(jtools) #?
-library(caret) #?
+library(GGally) 
+library(broom) 
+library(jtools) 
+library(caret) 
 library(AICcmodavg) 
 library(here)
 library(patchwork)
@@ -94,6 +94,8 @@ The exploratory plots show us that there is the most variation between species i
 
 ## Model 1 
 
+The first model I tested is species as a function of height, length, width, and number of green leaves.
+
 ```{r}
 #make species a factor 
 palmetto_sub$species <- as.factor(palmetto_sub$species)
@@ -151,6 +153,8 @@ eff_4 <- effect_plot(palmetto_blr1,
 
 ## Model 2
 
+The second model I tested is species as a function of height, width, and number of green leaves.
+
 ```{r}
 #BLR on Model 2: Plant type as function of  plant height, canopy width and green leaves
 
@@ -199,6 +203,8 @@ eff_7 <- effect_plot(palmetto_blr2,
 ```
 
 # Model Selection
+
+To answer the question of which model is better, I compared the AICs of the models and then performed 10-fold cross validation to see which model performed better. 
 
 ## Comparing AICs
 
