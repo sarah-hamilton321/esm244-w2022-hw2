@@ -92,9 +92,13 @@ nls_lizards = nls(weight ~ lizard_function(a, b, SV_length),
 ```{r}
 #output the model 
 
-tidy(nls_lizards) %>%
+nls_tidy <- tidy(nls_lizards)
+nls_tidy$p.value <- ifelse(nls_tidy$p.value < .001, paste("< .001"))
+
+nls_tidy %>%
   select(term, estimate, std.error, p.value) %>%
-  kable(col.names = c("Term", "Estimate", "Std. Error", "P Value")) %>%
+  kable(col.names = c("Term", "Estimate", "Std. Error", "P Value"),
+        digits = c(4,4,4,4)) %>%
   kable_styling(full_width = FALSE) 
 
 ```
@@ -147,9 +151,11 @@ The following table shows the results of our NLS model run on only the male West
 **Table 2.** Results of the nonlinear least squares regression on the male Western Whiptails data. 
 ```{r}
 #output the model 
+
 tidy(nls_lizards_sub) %>%
   select(term, estimate, std.error, p.value) %>%
-  kable(col.names = c("Term", "Estimate", "Std. Error", "P Value")) %>%
+  kable(col.names = c("Term", "Estimate", "Std. Error", "P Value"),
+        digits = c(4,4,4,4)) %>%
   kable_styling(full_width = FALSE)
 ```
 

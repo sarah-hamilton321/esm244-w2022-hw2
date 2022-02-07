@@ -123,7 +123,8 @@ blr1_fitted <- palmetto_blr1 %>%
 ggplot(data = blr1_fitted, aes(x = green_lvs, y = .fitted)) +
   geom_point(aes(color = species)) +
   geom_smooth(aes(color = species), se = FALSE) +
-  labs(x = "No. of Green Leaves", y = "Probability of outcome 'Serenoa repens'")
+  labs(x = "No. of Green Leaves", y = "Probability of outcome 'Serenoa repens'") +
+  theme_minimal()
 ```
 
 ```{r}
@@ -179,7 +180,9 @@ blr2_fitted <- palmetto_blr2 %>%
 ggplot(data = blr2_fitted, aes(x = green_lvs, y = .fitted)) +
   geom_point(aes(color = species)) +
   geom_smooth(aes(color = species), se = FALSE) +
-  labs(x = "No. of Green Leaves", y = "Probability of outcome 'Serenoa repens'")
+  labs(x = "No. of Green Leaves", y = "Probability of outcome 'Serenoa repens'") +
+  theme_minimal()
+
 ```
 
 ```{r}
